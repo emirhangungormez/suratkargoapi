@@ -1,0 +1,24 @@
+{
+    "name": "emirhangungormez/suratkargoapi",
+    "description": "A zero-dependency, cURL-based PHP SDK for the Sürat Kargo Web Service (SOAP API) designed for humans and AI coding assistants.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Emirhan Güngörmez",
+            "email": "emirhangungormez@outlook.com.tr"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=8.0",
+        "ext-curl": "*",
+        "ext-simplexml": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "SuratKargo\\": "src/"
+        }
+    }
+}
