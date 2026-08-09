@@ -257,6 +257,40 @@ $client = new SuratKargoClient([
 
 ---
 
+### 7. Toplu Sorgulama ve Webhook Simülasyonu (Batch Query & Webhooks)
+
+Sürat Kargo API'si doğrudan Webhook (anlık HTTP bildirimi) desteklemez. Ancak Geliver, İkas gibi sistemlerin yaptığı gibi kendi sunucunuzda anlık durum değişikliklerini tetiklemek için SDK'nın toplu sorgulama gücünü kullanabilirsiniz.
+
+`queryBatch()` metodu, tek bir SOAP istek paketinde 100 adete kadar kargoyu aynı anda sorgular. Bu, tek tek sorgu atmaktan (rate-limit / yavaşlık) kurtarır.
+
+```php
+<?php
+use SuratKargo\SuratKargoClient;
+
+$client = new SuratKargoClient([/* config */]);
+
+// Veritabanınızda durumu 'taşıma' durumunda olan sipariş referansları
+$activeOrders = ['ORDER-1001', 'ORDER-1002', 'ORDER-1003'];
+
+// Tek istekte hepsini sorgula
+$results = $client->queryBatch($activeOrders);
+
+foreach ($results as $row) {
+    $ref = $row['WebSiparisKodu'];
+    $rawStatus = $row['Durum'] ?? $row['SonDurum'] ?? null;
+    $resolvedStatus = $client->resolveStatus($rawStatus);
+
+    // Eğer veritabanınızdaki eski durum ile $resolvedStatus farklıysa:
+    // 1. Veritabanını güncelleyin
+    // 2. Kendi sisteminize veya diğer mikroservislerinize POST (Webhook) atın
+}
+```
+
+> [!TIP]
+> Bu akışın tam çalışan, durum değişim kontrolü içeren ve webhook tetikleyen simülasyonunu incelemek için `examples/webhook_simulation.php` dosyasını kullanabilirsiniz.
+
+---
+
 ## 🏷️ Ön Kabul / Özel Barkod Eşleştirme Sistemi (Pre-Acceptance Barcode System)
 
 Sürat Kargo, bireysel veya standart e-ticaret entegrasyonlarına API üzerinden anlık barkod üretme yetkisini (`GonderiyiKargoyaGonderYeniSiparisBarkodOlustur`) **neredeyse hiçbir zaman doğrudan tanımlamaz**. İkas, Ticimax veya özel yazılmış büyük e-ticaret altyapıları bile Sürat Kargo entegrasyonlarını "Ön Kabul" yöntemiyle çözmektedir.
@@ -315,6 +349,9 @@ Kütüphane içinde kullanılan ve WSDL dosyasında (`https://webservices.suratk
 * **`GonderiSil`**: Cari kodu ve web entegrasyon şifresiyle kargo gönderisini sistemden siler.
 * **`GonderiGeriCek`**: API kullanıcı bilgileri ve iptal nedeni belirtilerek kargoyu geri çeker.
 * **`WebSiparisKodu`**: Gönderilen bir referans koduna ait kargonun durumunu tekil olarak sorgular.
+* **`WebSiparisKoduToplu`**: Birden fazla sipariş referansını tek bir SOAP istek paketiyle sorgular. Toplu senkronizasyon ve webhook tetikleme süreçlerinde kullanılır.
+* **`KOdemeIslemleri`**: Cari kod ve web şifresiyle belirli tarih aralığındaki kapıda ödeme (COD) tahsilat ve mutabakat dökümlerini döndürür.
+* **`ATDisiMahalleListesi`**: Kargo şirketinin normal dağıtım alanı dışındaki (mobil teslimat yapılan) kırsal/özel bölgeleri sorgulamak için kullanılır.
 * **`KargoTakipHareketDetayliV2`**: Kargonun hangi şubede, hangi işlemden geçtiğini (tarih, saat ve şube bilgisiyle) detaylı XML dizisi halinde döndürür.
 * **`CariKoduveSifre`**: İki tarih aralığındaki (maks. 7 gün) tüm gönderilerin listesini ve genel durumlarını döndürür.
 

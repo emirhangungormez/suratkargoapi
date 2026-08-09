@@ -240,6 +240,40 @@ class SuratKargoClient
     }
 
     /**
+     * Queries multiple shipment statuses in a single SOAP API call.
+     * Useful for batch synchronization and webhook dispatching.
+     * Max recommended batch size is 100.
+     *
+     * @param array<string> $references Array of shipment reference codes
+     * @return array<array<string, string>> Array of mapped shipment details
+     * @throws SuratKargoException
+     */
+    public function queryBatch(array $references): array
+    {
+        if (empty($references)) {
+            return [];
+        }
+
+        $cariNodes = '';
+        foreach ($references as $_) {
+            $cariNodes .= '<string>' . $this->escape($this->customerCode) . '</string>';
+        }
+
+        $refNodes = '';
+        foreach ($references as $ref) {
+            $refNodes .= '<string>' . $this->escape($ref) . '</string>';
+        }
+
+        $xml = $this->callRaw('WebSiparisKoduToplu',
+            '<GonderenCariKodlari>' . $cariNodes . '</GonderenCariKodlari>'
+            . '<WebSiparisKodlari>' . $refNodes . '</WebSiparisKodlari>'
+            . '<Sifre>' . $this->escape($this->webPassword) . '</Sifre>');
+
+        return $this->datasetRows($xml);
+    }
+
+
+    /**
      * Queries detailed barcode metadata, PDF content and ZPL printer codes.
      * Uses Customer Code & Web Password.
      */
