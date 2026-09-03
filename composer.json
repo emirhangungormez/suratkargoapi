@@ -3,6 +3,18 @@
     "description": "A zero-dependency, cURL-based PHP SDK for the Sürat Kargo Web Service (SOAP API) designed for humans and AI coding assistants.",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "suratkargo",
+        "surat-kargo",
+        "kargo-api",
+        "soap-client",
+        "zero-dependency",
+        "tracking",
+        "barkod",
+        "php-sdk",
+        "ecommerce",
+        "shipping"
+    ],
     "authors": [
         {
             "name": "Emirhan Güngörmez",

@@ -357,6 +357,32 @@ Kütüphane içinde kullanılan ve WSDL dosyasında (`https://webservices.suratk
 
 ---
 
+## 🛡️ Güvenlik ve Defansif Entegrasyon (Security & Defense)
+
+Kargo entegrasyonları, XML tabanlı SOAP yapıları nedeniyle çeşitli siber saldırılara hedef olabilir. Bu SDK, güvenliğinizi sağlamak için varsayılan olarak defansif önlemler içerir.
+
+### 1. XXE (XML External Entity) Koruması
+*   **Tehdit:** Saldırganlar, SOAP yanıtları veya takip verileri arasına dış varlık (external entity) tanımları yerleştirerek sunucu üzerindeki yerel dosyaları (`file:///etc/passwd` vb.) okumaya çalışabilir.
+*   **SDK Önlemi:** SDK, gelen tüm ham XML yanıtlarını ayrıştırmadan (parse etmeden) önce tarar. Eğer XML içerisinde `<!DOCTYPE` veya `<!ENTITY` ifadeleri algılanırsa işlemi durdurur ve `SuratKargoException` fırlatır.
+
+### 2. XML Bomb (Billion Laughs / DoS) Koruması
+*   **Tehdit:** Derin iç içe geçmiş XML entity tanımları (XML bomb), parser'ın belleği tüketerek sunucunun kilitlenmesine (Denial of Service) neden olabilir.
+*   **SDK Önlemi:** DTD ve Dış Varlık çözümlemeleri XML yükleme aşamasında tamamen engellenmiştir. Ayrıca ham veri taranarak recursive entity tanımları doğrudan reddedilir.
+
+### 3. SOAPAction Header Spoofing Koruması
+*   **Tehdit:** HTTP başlığındaki (Header) `SOAPAction` değeri ile XML gövdesindeki (Body) metot adının farklı olması durumunda sunucuların yetkisiz metotları çalıştırması sağlanabilir.
+*   **SDK Önlemi:** SDK, istek oluştururken `SOAPAction` başlığını ve XML gövdesini birebir eşleştirerek gönderir.
+
+### 4. WSDL ve Bilgi İfşası (Reconnaissance)
+*   **Tehdit:** Sürat Kargo'nun veya sizin entegrasyon katmanınızın WSDL dosyalarının public olması, saldırganların tüm metotları ve parametre tiplerini keşfetmesini sağlar.
+*   **Güvenlik Tavsiyesi:** Kendi uygulamanızda kargo entegrasyon detaylarını dış dünyaya açan yönlendirmeleri (routing) ve logları korumaya alın. Canlı ortam kimlik bilgilerini asla Git depolarına eklemeyin; `.env` dosyası kullanarak şifreleyin.
+
+### 5. SSL Doğrulaması (MitM Koruması)
+*   **Tehdit:** Ortadaki Adam (Man-in-the-Middle) saldırılarıyla verilerin araya girilerek okunması veya manipüle edilmesi.
+*   **SDK Önlemi:** `verify_ssl => true` varsayılan olarak etkindir. Local test ortamları dışında bu değeri asla `false` yapmayın. Eğer `false` yapılırsa SDK sistem loglarına güvenlik uyarısı (warning) yazar.
+
+---
+
 ## 📜 Lisans
 
 Bu proje **MIT Lisansı** ile lisanslanmıştır. Dilediğiniz gibi kişisel veya ticari projelerinizde kullanabilir, değiştirebilir ve dağıtabilirsiniz.

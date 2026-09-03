@@ -1,0 +1,71 @@
+# Sürat Kargo Web Service SOAP API SDK (llms.txt)
+
+> Lightweight, zero-dependency, cURL-based PHP SDK for the Sürat Kargo Web Service (SOAP API). Built for both human software engineers and AI coding assistants (Gemini, Claude, Cursor, Copilot, ChatGPT).
+
+## Key Information for LLMs & AI Coding Assistants
+- **Namespace:** `SuratKargo\`
+- **PHP Requirements:** `>=8.0` with native `ext-curl`, `ext-simplexml`, `ext-json`.
+- **Zero Dependencies:** Does NOT require `ext-soap`. Communicates directly via cURL XML envelopes.
+- **Endpoint:** `https://webservices.suratkargo.com.tr/services.asmx`
+- **WSDL:** `https://webservices.suratkargo.com.tr/services.asmx?WSDL`
+
+## Critical Implementation Rules (Do Not Violate)
+1. **Two Credential Layers:**
+   - For creating/cancelling shipments (`createShipment`, `withdrawShipment`): use `shipping_username` (`KullaniciAdi`) and `shipping_password` (`Sifre`).
+   - For querying/tracking/barcodes (`trackShipment`, `queryByReference`, `getBarcode`, `cancelShipment`): use `customer_code` (`cariKodu` / `GonderenCariKodu`) and `web_password` (`WebPassword` / `Sifre`).
+2. **Resilient Shipment Cascade:**
+   API permissions vary by branch. SDK automatically cascades:
+   `GonderiyiKargoyaGonderYeniSiparisBarkodOlustur` -> if error 050 -> `OrtakBarkodOlustur` -> if failed -> `GonderiyiKargoyaGonderYeni`.
+3. **Phone Number Normalization:**
+   Sürat Kargo expects clean 10-digit format (`5XXXXXXXXX`). SDK normalizes mobile numbers automatically.
+4. **Status Translation:**
+   Use `$client->resolveStatus($rawStatus)` to map raw Turkish statuses to standard ecommerce statuses: `delivered`, `out_for_delivery`, `branch`, `transfer`, `failed`, `returning`, `cancelled`, `approved`.
+
+## Quick Code Examples for AI Generation
+
+### Client Initialization
+```php
+use SuratKargo\SuratKargoClient;
+use SuratKargo\ShipmentData;
+
+$client = new SuratKargoClient([
+    'shipping_username' => 'API_USER_NAME',
+    'shipping_password' => 'API_PASSWORD',
+    'customer_code'     => 'CUSTOMER_CARI_CODE',
+    'web_password'      => 'WEB_PANEL_PASSWORD',
+    'verify_ssl'        => true
+]);
+```
+
+### Create Shipment
+```php
+$shipment = new ShipmentData(
+    recipientName: 'Ahmet Yılmaz',
+    address: 'Atatürk Mah. Fatih Cad. No:45 Kadıköy',
+    city: 'İstanbul',
+    district: 'Kadıköy',
+    phoneMobile: '05551234567',
+    referenceNo: 'ORDER-10025'
+);
+$shipment->packageCount = 1;
+$shipment->desi = 2.0;
+
+$result = $client->createShipment($shipment);
+// $result['tracking_number'], $result['barcode']
+```
+
+### Tracking & Status Resolution
+```php
+$movements = $client->trackShipment('ORDER-10025');
+$general = $client->queryByReference('ORDER-10025');
+$status = $client->resolveStatus($general['SonDurum'] ?? null);
+```
+
+### Barcode & PDF Label
+```php
+$barcodeData = $client->getBarcode('ORDER-10025');
+$pdfBase64 = $barcodeData['pdf'];
+if ($pdfBase64) {
+    file_put_contents('label.pdf', base64_decode($pdfBase64));
+}
+```

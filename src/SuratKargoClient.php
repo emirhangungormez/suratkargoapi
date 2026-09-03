@@ -55,6 +55,10 @@ class SuratKargoClient
         $this->timeout = $config['timeout'] ?? 30;
         $this->verifySsl = $config['verify_ssl'] ?? true;
         $this->logger = $config['logger'] ?? null;
+
+        if (!$this->verifySsl) {
+            $this->log('warning', 'Sürat Kargo Güvenlik Uyarısı: SSL doğrulaması (verify_ssl) devre dışı bırakılmış. Bu durum Ortadaki Adam (MitM) saldırılarına karşı savunmasızlık oluşturur.');
+        }
     }
 
     /**
@@ -327,6 +331,12 @@ class SuratKargoClient
         $cleanXmlString = preg_replace('/<\?xml[^>]*\?>/i', '', $cleanXmlString);
         $cleanXmlString = '<root>' . $cleanXmlString . '</root>';
 
+        // Prevent XXE and XML Bomb / Billion Laughs attacks
+        if (stripos($cleanXmlString, '<!DOCTYPE') !== false || stripos($cleanXmlString, '<!ENTITY') !== false) {
+            $this->log('critical', 'Sürat Kargo Güvenlik Tehdidi: Kargo takip verisinde DTD/Entity tanımları algılandı.', ['payload' => $cleanXmlString]);
+            throw new SuratKargoException("Güvenlik Hatası: Kargo takip verisinde geçersiz XML yapısı (DTD/Entity algılandı).");
+        }
+
         $historyXml = @simplexml_load_string($cleanXmlString);
         if ($historyXml === false) {
             throw new SuratKargoException('Kargo takip hareket detayları XML formatı çözülemedi.');
@@ -542,6 +552,12 @@ class SuratKargoClient
 
         if ($httpCode >= 400 && empty($response)) {
             throw new SuratKargoException("Sürat Kargo API geçersiz HTTP yanıtı verdi: Kod {$httpCode}");
+        }
+
+        // Prevent XXE and XML Bomb / Billion Laughs attacks
+        if (stripos($response, '<!DOCTYPE') !== false || stripos($response, '<!ENTITY') !== false) {
+            $this->log('critical', "Sürat Kargo Güvenlik Tehdidi: SOAP yanıtında DTD/Entity tanımları algılandı (Metot: {$method}).", ['response' => $response]);
+            throw new SuratKargoException("Güvenlik Hatası: Gelen XML yanıtı geçersiz veya zararlı ögeler (DTD/Entity) içeriyor.");
         }
 
         $xml = simplexml_load_string($response);
